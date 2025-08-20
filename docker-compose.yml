@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  jsonl-csv-converter:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_APP=main.py
+      - FLASK_ENV=development
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials.json
+      - GOOGLE_CLOUD_PROJECT_ID=${GOOGLE_CLOUD_PROJECT_ID:-your-project-id}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME:-your-bucket-name}
+      - GOOGLE_CLOUD_REGION=${GOOGLE_CLOUD_REGION:-us-central1}
+    volumes:
+      # Mount credentials file (create this file with your Google Cloud credentials)
+      - ./credentials.json:/app/credentials.json:ro
+      # Mount a directory for testing files (optional)
+      - ./test-files:/app/test-files:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a simple test client
+  test-client:
+    image: curlimages/curl:latest
+    depends_on:
+      - jsonl-csv-converter
+    volumes:
+      - ./test-files:/test-files:ro
+    command: >
+      sh -c "
+        echo 'Waiting for service to be ready...' &&
+        sleep 10 &&
+        echo 'Testing service...' &&
+        curl -X POST http://jsonl-csv-converter:8080/jsonl_to_csv \
+          -F 'file=@/test-files/sample.jsonl' \
+          -F 'project_id=test-project' ||
+        echo 'Service test completed'
+      "
+    profiles:
+      - test
