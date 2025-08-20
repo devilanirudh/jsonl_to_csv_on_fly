@@ -258,12 +258,4 @@ Enable detailed logging by setting the log level:
 ```python
 logging.basicConfig(level=logging.DEBUG)
 ```
-
-## License
-
-[Add your license information here]
-
-## Contributing
-
-[Add contribution guidelines here]
 # jsonl_to_csv_on_fly
